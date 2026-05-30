@@ -547,7 +547,7 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);min
               <input type="file" accept=".xlsx,.xls" style="position:absolute;inset:0;opacity:0;cursor:pointer;z-index:1" onchange="loadSkuFile(this.files,'product')">
               <div style="font-size:22px;margin-bottom:6px;opacity:.4">📄</div>
               <div style="font-size:12px;color:var(--text2)">product_*.xlsx</div>
-              <div id="sku-product-status" style="font-size:11px;color:var(--text3);margin-top:4px">ยังไม่ได้โหลด</div>
+              <div id="sku-product-status" style="font-size:11px;color:var(--text3);margin-top:4px">รอโหลดอัตโนมัติ...</div>
             </div>
           </div>
           <div>
@@ -556,7 +556,7 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);min
               <input type="file" accept=".xlsx,.xls" style="position:absolute;inset:0;opacity:0;cursor:pointer;z-index:1" onchange="loadSkuFile(this.files,'bundle')">
               <div style="font-size:22px;margin-bottom:6px;opacity:.4">📄</div>
               <div style="font-size:12px;color:var(--text2)">bundle_*.xlsx</div>
-              <div id="sku-bundle-status" style="font-size:11px;color:var(--text3);margin-top:4px">ยังไม่ได้โหลด</div>
+              <div id="sku-bundle-status" style="font-size:11px;color:var(--text3);margin-top:4px">รอโหลดอัตโนมัติ...</div>
             </div>
           </div>
         </div>
@@ -639,7 +639,82 @@ window.addEventListener('load',()=>{
   if(cfg.from)document.getElementById('cfg-from').value=cfg.from;
   if(cfg.to)document.getElementById('cfg-to').value=cfg.to;
   renderHistory();
+  // โหลดฐานข้อมูลสินค้าจาก GitHub อัตโนมัติ
+  autoLoadSkuFromGitHub();
 });
+
+async function autoLoadSkuFromGitHub(){
+  // Base URL ของ repo นี้ใน GitHub Pages / raw content
+  const base = location.origin.includes('github.io')
+    ? location.origin + '/' + location.pathname.split('/')[1]
+    : '.';
+
+  const files = [
+    { url: base + '/product.xlsx', type: 'product', statusId: 'sku-product-status' },
+    { url: base + '/bundle.xlsx',  type: 'bundle',  statusId: 'sku-bundle-status'  }
+  ];
+
+  for (const f of files) {
+    const el = document.getElementById(f.statusId);
+    if (!el) continue;
+    el.textContent = 'กำลังโหลด...';
+    el.style.color = 'var(--latte)';
+    try {
+      const res = await fetch(f.url, { cache: 'no-cache' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const buf = await res.arrayBuffer();
+      await parseSkuBuffer(buf, f.type, el);
+    } catch(err) {
+      el.textContent = '⚠ โหลดไม่ได้ — ลองอัปโหลดเอง';
+      el.style.color = 'var(--text3)';
+    }
+  }
+  updateSkuSummary();
+}
+
+async function parseSkuBuffer(buf, type, statusEl) {
+  const wb = XLSX.read(buf, {type:'array'});
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+  let count = 0;
+
+  if (type === 'product') {
+    let skuCol=-1, nameCol=-1, headerRow=-1;
+    for (let r=0; r<Math.min(rows.length,5); r++) {
+      rows[r].forEach((v,c)=>{
+        const val=String(v).trim();
+        if(val==='รหัสสินค้า'){skuCol=c;headerRow=r;}
+        if(val==='ชื่อสินค้า')nameCol=c;
+      });
+      if(skuCol>=0&&nameCol>=0)break;
+    }
+    if(skuCol<0||nameCol<0)throw new Error('ไม่พบคอลัมน์');
+    for(let r=headerRow+1;r<rows.length;r++){
+      const sku=String(rows[r][skuCol]||'').trim();
+      const name=String(rows[r][nameCol]||'').trim();
+      if(sku&&name){skuDb[sku]=name;count++;}
+    }
+  } else {
+    let skuCol=-1, nameCol=-1, headerRow=-1;
+    for (let r=0; r<Math.min(rows.length,5); r++) {
+      rows[r].forEach((v,c)=>{
+        const val=String(v).trim();
+        if(val==='รหัสสินค้าเป็นชุด'){skuCol=c;headerRow=r;}
+        if(val==='ชื่อสินค้าเป็นชุด')nameCol=c;
+      });
+      if(skuCol>=0&&nameCol>=0)break;
+    }
+    if(skuCol<0||nameCol<0)throw new Error('ไม่พบคอลัมน์');
+    const seen=new Set();
+    for(let r=headerRow+1;r<rows.length;r++){
+      const sku=String(rows[r][skuCol]||'').trim();
+      const name=String(rows[r][nameCol]||'').trim();
+      if(sku&&name&&!seen.has(sku)){skuDb[sku]=name;seen.add(sku);count++;}
+    }
+  }
+  statusEl.textContent = `✅ ${count} รายการ (auto)`;
+  statusEl.style.color = 'var(--green2)';
+}
 
 function saveConfig(){
   const cfg={
