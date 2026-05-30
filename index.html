@@ -644,14 +644,19 @@ window.addEventListener('load',()=>{
 });
 
 async function autoLoadSkuFromGitHub(){
-  // Base URL ของ repo นี้ใน GitHub Pages / raw content
-  const base = location.origin.includes('github.io')
-    ? location.origin + '/' + location.pathname.split('/')[1]
+  // รองรับทั้ง GitHub Pages และ local file
+  const isGithubPages = location.hostname.includes('github.io');
+  const repoName = location.pathname.split('/')[1] || '';
+  const ghUser = location.hostname.split('.')[0];
+
+  // GitHub raw content URL (ไม่มีปัญหา CORS)
+  const rawBase = isGithubPages
+    ? `https://raw.githubusercontent.com/${ghUser}/${repoName}/main`
     : '.';
 
   const files = [
-    { url: base + '/product.xlsx', type: 'product', statusId: 'sku-product-status' },
-    { url: base + '/bundle.xlsx',  type: 'bundle',  statusId: 'sku-bundle-status'  }
+    { url: rawBase + '/product.xlsx', type: 'product', statusId: 'sku-product-status' },
+    { url: rawBase + '/bundle.xlsx',  type: 'bundle',  statusId: 'sku-bundle-status'  }
   ];
 
   for (const f of files) {
@@ -665,7 +670,8 @@ async function autoLoadSkuFromGitHub(){
       const buf = await res.arrayBuffer();
       await parseSkuBuffer(buf, f.type, el);
     } catch(err) {
-      el.textContent = '⚠ โหลดไม่ได้ — ลองอัปโหลดเอง';
+      console.warn('Auto-load failed:', f.url, err.message);
+      el.textContent = '⚠ โหลดไม่ได้ — อัปโหลดเองได้';
       el.style.color = 'var(--text3)';
     }
   }
