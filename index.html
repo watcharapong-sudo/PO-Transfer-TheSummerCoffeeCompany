@@ -1,0 +1,1348 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PO Transfer | The Summer Coffee</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs" type="module" id="pdfjs-script"></script>
+<script type="module">
+  import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs';
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs';
+  window.pdfjsLib = pdfjsLib;
+  window.pdfjsReady = true;
+  window.dispatchEvent(new Event('pdfjsLoaded'));
+</script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Sarabun:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap');
+:root{
+  /* Summer Coffee — Roasted & Refined */
+  --yellow:#FFD100;
+  --yellow-dim:#ECC200;
+  --yellow-soft:rgba(255,209,0,.1);
+  --yellow-glow:rgba(255,209,0,.2);
+
+  /* Sidebar / Header: warm espresso — dark but not harsh */
+  --dark:#261A08;
+  --dark2:#311F0A;
+  --dark3:#3D2810;
+  --dark-border:rgba(255,209,0,.1);
+
+  --caramel:#9A6C30;
+  --latte:#C4945A;
+  --sand:#DDB878;
+
+  /* Main area: warm cream */
+  --bg:#F6EDD8;
+  --cream:#FBF5E6;
+  --cream2:#F3EAD0;
+  --cream3:#EAE0C0;
+  --fog:#DDD3B0;
+
+  --text:#261A08;
+  --text2:#6A4C22;
+  --text3:#A88A58;
+
+  --surface:#FFFEF8;
+  --surface2:#F6EDD8;
+  --surface3:#EDE3C8;
+
+  --border:rgba(150,108,48,.13);
+  --border2:rgba(150,108,48,.22);
+
+  --green:#2A5C3E;
+  --green2:#347850;
+  --green-soft:rgba(42,92,62,.08);
+
+  --red:#7A2828;
+  --red2:#A04040;
+  --red-soft:rgba(122,40,40,.07);
+
+  --shadow:0 1px 4px rgba(38,26,8,.06),0 6px 24px rgba(38,26,8,.08);
+  --shadow2:0 4px 20px rgba(38,26,8,.12),0 14px 44px rgba(38,26,8,.1);
+
+  --radius:8px;
+  --radius2:14px;
+  --radius3:22px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.65}
+
+/* ═══════════════ HEADER ═══════════════ */
+.header{
+  background:var(--dark);
+  padding:0 2rem;height:62px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;
+  border-bottom:1px solid var(--dark-border);
+}
+.logo{display:flex;align-items:center;gap:13px}
+.logo-mark{
+  width:34px;height:34px;
+  background:rgba(255,209,0,.12);
+  border:1px solid rgba(255,209,0,.2);
+  border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.logo-mark svg{color:#FFD100}
+.logo-text{display:flex;flex-direction:column;gap:2px}
+.logo-title{font-family:'Cormorant Garamond',serif;font-size:16px;font-weight:600;color:#FBF5E6;letter-spacing:.03em;line-height:1.2}
+.logo-sub{font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,209,0,.35);letter-spacing:.2em;text-transform:uppercase}
+.logo-dot{width:5px;height:5px;background:var(--yellow);border-radius:50%;margin-right:4px;animation:pulse 2.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.6)}}
+
+.status-pill{
+  font-family:'JetBrains Mono',monospace;font-size:10px;
+  padding:4px 12px;border-radius:20px;
+  border:1px solid rgba(255,255,255,.1);
+  color:rgba(251,245,230,.4);
+  background:rgba(255,255,255,.05);
+  letter-spacing:.04em;
+}
+.status-pill.active{
+  border-color:rgba(255,209,0,.35);
+  color:var(--yellow);
+  background:rgba(255,209,0,.1);
+}
+
+/* ═══════════════ LAYOUT ═══════════════ */
+.layout{display:grid;grid-template-columns:270px 1fr;min-height:calc(100vh - 64px)}
+
+/* ═══════════════ SIDEBAR ═══════════════ */
+.sidebar{
+  background:var(--dark2);
+  border-right:1px solid var(--dark-border);
+  padding:1.5rem;
+  display:flex;flex-direction:column;gap:1.75rem;
+  overflow-y:auto;
+}
+.sidebar-section h3{
+  font-family:'JetBrains Mono',monospace;
+  font-size:8px;font-weight:500;
+  letter-spacing:.2em;text-transform:uppercase;
+  color:rgba(255,209,0,.3);
+  margin-bottom:.875rem;
+  padding-bottom:.5rem;
+  border-bottom:1px solid rgba(255,209,0,.07);
+}
+.field{margin-bottom:.75rem}
+.field label{
+  display:block;font-size:11px;
+  color:rgba(251,245,230,.35);
+  margin-bottom:5px;letter-spacing:.04em;
+  font-family:'JetBrains Mono',monospace;
+}
+.field input,.field select{
+  width:100%;
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,209,0,.12);
+  border-radius:var(--radius);
+  padding:8px 10px;font-size:12px;
+  color:#FBF5E6;
+  font-family:'JetBrains Mono',monospace;
+  outline:none;transition:all .2s;
+}
+.field input:focus,.field select:focus{
+  border-color:rgba(255,209,0,.5);
+  background:rgba(255,209,0,.06);
+  box-shadow:0 0 0 3px rgba(255,209,0,.08);
+}
+.field input::placeholder{color:rgba(251,245,230,.2)}
+.field select option{background:var(--dark2);color:#FBF5E6}
+
+.config-save{
+  width:100%;
+  background:rgba(255,209,0,.12);
+  border:1px solid rgba(255,209,0,.2);
+  border-radius:var(--radius);
+  color:var(--yellow);font-size:12px;font-weight:500;
+  padding:9px;cursor:pointer;
+  font-family:'Sarabun',sans-serif;
+  transition:all .2s;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  letter-spacing:.02em;
+}
+.config-save:hover{background:rgba(255,209,0,.18);border-color:rgba(255,209,0,.35)}
+
+/* Steps */
+.step-list{display:flex;flex-direction:column;gap:3px}
+.step-item{
+  display:flex;align-items:center;gap:10px;
+  padding:7px 10px;border-radius:var(--radius);
+  font-size:12px;color:rgba(251,245,230,.28);
+  transition:all .2s;
+}
+.step-item.active{
+  background:rgba(255,209,0,.08);
+  color:rgba(255,209,0,.85);
+  border:1px solid rgba(255,209,0,.15);
+}
+.step-item.done{color:rgba(100,190,140,.75)}
+.step-num{
+  width:20px;height:20px;border-radius:50%;
+  border:1px solid currentColor;
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-family:'JetBrains Mono',monospace;flex-shrink:0;
+}
+.step-item.done .step-num{
+  background:var(--green2);border-color:var(--green2);color:#fff;
+}
+
+/* ═══════════════ MAIN ═══════════════ */
+.main{padding:2rem 2.5rem;overflow-y:auto;background:var(--bg)}
+
+/* ═══════════════ PANELS ═══════════════ */
+.panel{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius2);
+  margin-bottom:1.25rem;
+  overflow:hidden;
+  box-shadow:var(--shadow);
+  backdrop-filter:blur(8px);
+}
+.panel-header{
+  padding:1rem 1.5rem;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  background:linear-gradient(135deg,var(--cream2) 0%,var(--cream) 100%);
+}
+.panel-title{
+  font-family:'Cormorant Garamond',serif;
+  font-size:15px;font-weight:500;
+  display:flex;align-items:center;gap:10px;
+  color:var(--dark);letter-spacing:.02em;
+}
+.panel-body{padding:1.5rem}
+
+/* ═══════════════ UPLOAD ZONE ═══════════════ */
+.upload-zone{
+  border:2px dashed var(--border2);
+  border-radius:var(--radius2);
+  padding:3.5rem 2rem;text-align:center;
+  cursor:pointer;transition:all .25s;
+  position:relative;
+  background:linear-gradient(135deg,var(--cream2) 0%,var(--cream3) 100%);
+}
+.upload-zone:hover,.upload-zone.drag{
+  border-color:var(--caramel);
+  background:linear-gradient(135deg,rgba(200,150,10,.05) 0%,rgba(200,150,10,.02) 100%);
+  box-shadow:0 0 0 3px var(--yellow-soft),var(--shadow);
+  transform:translateY(-1px);
+}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;z-index:1}
+.upload-icon{font-size:40px;margin-bottom:14px;opacity:.3;filter:sepia(1)}
+.upload-title{font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:500;margin-bottom:8px;color:var(--dark)}
+.upload-sub{font-size:12px;color:var(--text3);line-height:1.7}
+
+/* ═══════════════ TABLE ═══════════════ */
+.items-table{width:100%;border-collapse:collapse}
+.items-table th{
+  font-size:9px;font-weight:500;
+  letter-spacing:.12em;text-transform:uppercase;
+  font-family:'JetBrains Mono',monospace;
+  color:var(--text3);
+  padding:0 10px 12px;text-align:left;
+  border-bottom:2px solid var(--border);
+}
+.items-table td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
+.items-table tr:last-child td{border-bottom:none}
+.items-table tr:hover td{background:rgba(255,209,0,.03)}
+
+.tbl-input{
+  background:transparent;border:1px solid transparent;
+  border-radius:5px;padding:3px 7px;
+  color:var(--text);font-size:13px;
+  font-family:'Sarabun',sans-serif;
+  width:100%;outline:none;transition:all .15s;
+}
+.tbl-input:focus{border-color:var(--yellow);background:rgba(255,209,0,.05)}
+.tbl-input.mono{font-family:'JetBrains Mono',monospace;font-size:12px}
+.tbl-del{
+  background:none;border:none;color:var(--text3);
+  cursor:pointer;padding:4px 8px;border-radius:4px;
+  font-size:14px;transition:all .15s;
+}
+.tbl-del:hover{color:var(--red2);background:rgba(184,64,64,.08)}
+
+/* ═══════════════ META INPUTS ═══════════════ */
+.meta-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:1.25rem}
+.meta-label{
+  font-size:10px;color:var(--text3);margin-bottom:4px;
+  display:block;letter-spacing:.06em;text-transform:uppercase;
+  font-family:'JetBrains Mono',monospace;
+}
+.meta-input{
+  width:100%;background:var(--surface2);
+  border:1px solid var(--border);border-radius:var(--radius);
+  padding:7px 9px;font-size:12px;color:var(--text);
+  font-family:'JetBrains Mono',monospace;outline:none;transition:all .2s;
+}
+.meta-input:focus{
+  border-color:var(--yellow);
+  background:rgba(255,209,0,.04);
+  box-shadow:0 0 0 3px rgba(255,209,0,.08);
+}
+
+/* ═══════════════ BUTTONS ═══════════════ */
+.btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 16px;border-radius:var(--radius);
+  font-size:12px;font-family:'Sarabun',sans-serif;
+  cursor:pointer;transition:all .2s;
+  border:1px solid var(--border);
+  background:var(--surface2);color:var(--text);
+  font-weight:500;
+}
+.btn:hover{background:var(--surface3);transform:translateY(-1px)}
+.btn-amber{
+  background:var(--dark);border-color:var(--dark);color:var(--cream);
+  font-weight:500;
+}
+.btn-amber:hover{background:var(--dark2);box-shadow:var(--shadow)}
+.btn-green{
+  background:var(--green2);border-color:var(--green2);color:#fff;
+  font-weight:600;
+}
+.btn-green:hover{background:var(--green);box-shadow:0 4px 14px rgba(42,92,62,.25)}
+#send-all-btn{
+  background:var(--yellow);color:var(--dark);
+  border-color:var(--yellow);font-weight:700;
+  font-size:13px;padding:10px 22px;
+  letter-spacing:.02em;
+  box-shadow:0 2px 10px rgba(255,209,0,.2);
+}
+#send-all-btn:hover{
+  background:var(--yellow-dim);
+  box-shadow:0 6px 20px rgba(255,209,0,.3);
+  transform:translateY(-1px);
+}
+#send-all-btn:disabled{
+  opacity:.45;transform:none;
+  box-shadow:none;cursor:not-allowed;
+}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:1.25rem}
+
+/* ═══════════════ SUMMARY CARDS ═══════════════ */
+.summary-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:1.25rem}
+.sum-card{
+  background:linear-gradient(135deg,var(--cream2) 0%,var(--cream3) 100%);
+  border:1px solid var(--border);border-radius:var(--radius2);
+  padding:1.1rem 1rem;text-align:center;
+  transition:transform .2s;
+}
+.sum-card:hover{transform:translateY(-2px);box-shadow:var(--shadow2)}
+.sum-label{
+  font-size:9px;color:var(--text3);
+  font-family:'JetBrains Mono',monospace;
+  letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px;
+}
+.sum-val{
+  font-size:22px;font-weight:600;
+  font-family:'Cormorant Garamond',serif;
+  color:var(--dark);
+}
+
+/* ═══════════════ LOADER ═══════════════ */
+.loader{display:flex;align-items:center;gap:10px;color:var(--text2);font-size:13px;padding:1.5rem 0}
+.spin{
+  width:18px;height:18px;
+  border:2px solid var(--border2);
+  border-top-color:var(--yellow);
+  border-radius:50%;
+  animation:spin .8s linear infinite;flex-shrink:0;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ═══════════════ TOAST ═══════════════ */
+.toast{
+  position:fixed;bottom:2rem;right:2rem;
+  background:var(--dark);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:var(--radius2);
+  padding:14px 18px;font-size:13px;max-width:340px;
+  z-index:999;opacity:0;transform:translateY(16px);
+  transition:all .25s cubic-bezier(.34,1.56,.64,1);
+  display:flex;align-items:flex-start;gap:12px;
+  box-shadow:0 8px 32px rgba(38,26,8,.35);
+}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast-icon{font-size:17px;flex-shrink:0;margin-top:1px}
+.toast-msg{color:#FBF5E6;line-height:1.5;font-size:12.5px}
+.toast.success{border-color:rgba(90,180,130,.3)}
+.toast.success .toast-icon{color:var(--green2)}
+.toast.error{border-color:rgba(184,64,64,.3)}
+.toast.error .toast-icon{color:#e07070}
+
+/* ═══════════════ BADGES ═══════════════ */
+.badge{font-size:10px;padding:2px 9px;border-radius:20px;font-family:'JetBrains Mono',monospace;font-weight:500}
+.badge-amber{
+  background:rgba(200,150,10,.08);
+  color:var(--caramel);
+  border:1px solid rgba(200,150,10,.2);
+}
+.badge-green{
+  background:rgba(45,106,74,.1);color:var(--green2);
+  border:1px solid rgba(45,106,74,.25);
+}
+.badge-blue{
+  background:rgba(74,100,200,.08);color:#6a8ad0;
+  border:1px solid rgba(74,100,200,.15);
+}
+
+.add-row-btn{
+  display:flex;align-items:center;gap:6px;
+  font-size:12px;color:var(--text3);
+  background:none;border:none;cursor:pointer;
+  padding:6px 10px;border-radius:var(--radius);
+  transition:all .15s;font-family:'Sarabun',sans-serif;
+}
+.add-row-btn:hover{color:var(--caramel);background:rgba(255,209,0,.08)}
+
+.result-info{
+  background:rgba(45,106,74,.06);
+  border:1px solid rgba(45,106,74,.2);
+  border-radius:var(--radius);
+  padding:1rem 1.25rem;margin-bottom:1rem;
+}
+.result-info .tf-number{
+  font-family:'Cormorant Garamond',serif;
+  font-size:19px;font-weight:600;
+  color:var(--green2);margin-bottom:4px;
+}
+
+.divider{border:none;border-top:1px solid var(--border);margin:0}
+
+
+/* Scrollbar */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+::-webkit-scrollbar-thumb:hover{background:var(--text3)}
+
+/* ═══════════════ PO CARDS ═══════════════ */
+.po-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius2);
+  margin-bottom:1rem;overflow:hidden;
+  transition:all .2s;box-shadow:var(--shadow);
+}
+.po-card:hover{box-shadow:var(--shadow2)}
+.po-card.status-pending{border-color:var(--border)}
+.po-card.status-sending{
+  border-color:var(--caramel);
+  box-shadow:0 0 0 3px var(--yellow-soft),var(--shadow);
+}
+.po-card.status-success{
+  border-color:rgba(45,106,74,.4);
+  background:rgba(45,106,74,.02);
+}
+.po-card.status-error{
+  border-color:rgba(184,64,64,.4);
+  background:rgba(184,64,64,.02);
+}
+.po-card-header{
+  padding:.875rem 1.25rem;
+  display:flex;align-items:center;gap:10px;
+  cursor:pointer;user-select:none;
+  transition:background .15s;
+}
+.po-card-header:hover{background:rgba(255,209,0,.03)}
+.po-card-body{padding:0 1.25rem 1.25rem;display:none}
+.po-card.expanded .po-card-body{display:block}
+.po-status-dot{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--border2);flex-shrink:0;
+  transition:background .3s;
+}
+.po-card.status-sending .po-status-dot{background:var(--yellow);animation:pulse 1s infinite}
+.po-card.status-success .po-status-dot{background:var(--green2)}
+.po-card.status-error .po-status-dot{background:var(--red2)}
+
+/* ═══════════════ BRANCH GROUP HEADER ═══════════════ */
+.branch-group-header{
+  font-family:'JetBrains Mono',monospace;
+  font-size:9px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--text3);padding:.5rem 0 .5rem;
+  margin-top:.5rem;margin-bottom:.25rem;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;
+}
+</style>
+</head>
+<body>
+<header class="header">
+  <div class="logo">
+    <div class="logo-mark">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#FFD100"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+    </div>
+    <div class="logo-text">
+      <span class="logo-title">The Summer Coffee Company</span>
+      <span class="logo-sub">☽ PO Transfer System</span>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px">
+<span class="status-pill" id="status-pill">ยังไม่ได้ upload</span>
+  </div>
+</header>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <h3>ขั้นตอน</h3>
+      <div class="step-list">
+        <div class="step-item active" id="step-s1"><div class="step-num">1</div><span>Upload PDF</span></div>
+        <div class="step-item" id="step-s2"><div class="step-num">2</div><span>อ่านข้อมูลอัตโนมัติ</span></div>
+        <div class="step-item" id="step-s3"><div class="step-num">3</div><span>ตรวจสอบรายการ</span></div>
+        <div class="step-item" id="step-s4"><div class="step-num">4</div><span>ส่งเข้า Zort</span></div>
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <h3>Zort Config</h3>
+      <div class="field"><label>Store Name</label><input type="text" id="cfg-store" placeholder="Kanyarat@thesummercoffee.com"></div>
+      <div class="field"><label>ประเภทรายการ</label>
+        <select id="cfg-branch">
+          <option value="|กาแฟชง">กาแฟชง</option>
+          <option value="|">ไม่มี suffix</option>
+          <option value="|เบิกของใช้">เบิกของใช้</option>
+        </select>
+      </div>
+      <div class="field"><label>API Key</label><input type="text" id="cfg-key" placeholder="your-api-key"></div>
+      <div class="field"><label>API Secret</label><input type="password" id="cfg-secret" placeholder="your-api-secret"></div>
+      <div class="field"><label>จากคลัง (Code)</label><select id="cfg-from" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:7px 10px;font-size:12px;color:var(--text);font-family:'IBM Plex Mono',monospace;outline:none;transition:border-color .15s">
+          <option value="WH001" selected>WH001 — Warehouse</option>
+          <option value="WD0007">WD0007 — Warehouse (Defect)</option>
+          <option value="SCC0001">SCC0001 — ฝากขาย SCC</option>
+          <option value="W0009">W0009 — Scc Booth</option>
+        </select></div>
+      <div class="field"><label>ไปคลัง (Code)</label><select id="cfg-to" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:7px 10px;font-size:12px;color:var(--text);font-family:'IBM Plex Mono',monospace;outline:none;transition:border-color .15s">
+          <option value="WH001">WH001 — Warehouse</option>
+          <option value="WD0007">WD0007 — Warehouse (Defect)</option>
+          <option value="SCC0001" selected>SCC0001 — ฝากขาย SCC</option>
+          <option value="W0009">W0009 — Scc Booth</option>
+        </select></div>
+      <button class="config-save" onclick="saveConfig()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17,21 17,13 7,13 7,21"/><polyline points="7,3 7,8 15,8"/></svg>
+        บันทึก Config
+      </button>
+      <button class="config-save" id="test-conn-btn" onclick="testConnection()" style="margin-top:6px;background:rgba(74,127,196,.1);border-color:rgba(74,127,196,.3);color:#7aabf0">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        ทดสอบการเชื่อมต่อ
+      </button>
+      <div id="conn-status" style="font-size:11px;margin-top:4px;text-align:center;min-height:16px"></div>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="panel" id="panel-sku-upload">
+      <div class="panel-header">
+        <div class="panel-title"><span class="badge badge-amber">00</span> โหลดฐานข้อมูลสินค้า (Zort)</div>
+        <div id="sku-status-badge" style="font-size:11px;color:var(--text3);font-family:monospace"></div>
+      </div>
+      <div class="panel-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div>
+            <label class="meta-label" style="margin-bottom:6px;display:block">📦 ไฟล์สินค้า (Product Excel)</label>
+            <div class="upload-zone" style="padding:1.25rem 1rem;text-align:center;cursor:pointer;position:relative">
+              <input type="file" accept=".xlsx,.xls" style="position:absolute;inset:0;opacity:0;cursor:pointer;z-index:1" onchange="loadSkuFile(this.files,'product')">
+              <div style="font-size:22px;margin-bottom:6px;opacity:.4">📄</div>
+              <div style="font-size:12px;color:var(--text2)">product_*.xlsx</div>
+              <div id="sku-product-status" style="font-size:11px;color:var(--text3);margin-top:4px">ยังไม่ได้โหลด</div>
+            </div>
+          </div>
+          <div>
+            <label class="meta-label" style="margin-bottom:6px;display:block">🎁 ไฟล์สินค้าชุด (Bundle Excel)</label>
+            <div class="upload-zone" style="padding:1.25rem 1rem;text-align:center;cursor:pointer;position:relative">
+              <input type="file" accept=".xlsx,.xls" style="position:absolute;inset:0;opacity:0;cursor:pointer;z-index:1" onchange="loadSkuFile(this.files,'bundle')">
+              <div style="font-size:22px;margin-bottom:6px;opacity:.4">📄</div>
+              <div style="font-size:12px;color:var(--text2)">bundle_*.xlsx</div>
+              <div id="sku-bundle-status" style="font-size:11px;color:var(--text3);margin-top:4px">ยังไม่ได้โหลด</div>
+            </div>
+          </div>
+        </div>
+        <div id="sku-summary" style="display:none;margin-top:.875rem;background:rgba(74,124,95,.06);border:1px solid rgba(74,124,95,.2);border-radius:var(--radius);padding:.75rem 1rem;font-size:12px;color:var(--text2)"></div>
+      </div>
+    </div>
+        <div class="panel" id="panel-upload">
+      <div class="panel-header"><div class="panel-title"><span class="badge badge-amber">01</span> Upload Purchase Order PDF</div></div>
+      <div class="panel-body">
+        <div class="upload-zone" id="drop-zone">
+          <input type="file" id="pdf-input" accept=".pdf" multiple onchange="handleFiles(this.files)">
+          <div class="upload-icon">☕</div>
+          <div class="upload-title">วาง Purchase Order ที่นี่</div>
+          <div class="upload-sub">รองรับ Purchase Order จาก FoodStory · อัปโหลดได้หลายไฟล์พร้อมกัน · ฟรี 100%</div>
+        </div>
+        <div id="upload-done" style="display:none;margin-top:1rem"><span class="badge badge-green" id="upload-fname"></span></div>
+      </div>
+    </div>
+    <div class="panel" id="panel-reading" style="display:none">
+      <div class="panel-header"><div class="panel-title"><span class="badge badge-amber">02</span> กำลังอ่านข้อมูลจาก PDF</div></div>
+      <div class="panel-body"><div class="loader"><div class="spin"></div><span id="loader-text">กำลังอ่าน PDF...</span></div></div>
+    </div>
+    <div class="panel" id="panel-confirm" style="display:none">
+      <div class="panel-header">
+        <div class="panel-title"><span class="badge badge-blue">03</span> ตรวจสอบรายการ <span id="item-count-badge" style="font-size:11px;color:var(--text3);margin-left:4px"></span></div>
+        <button class="btn" onclick="resetAll()" style="font-size:12px;padding:5px 10px">↺ เริ่มใหม่</button>
+      </div>
+      <div class="panel-body">
+        <div id="po-cards-container"></div>
+        <div class="btn-row" style="margin-top:1.5rem">
+          <button class="btn btn-green" id="send-all-btn" onclick="confirmSendAll()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 2 11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            ส่งทั้งหมดเข้า Zort
+          </button>
+          <button class="btn btn-amber" onclick="exportAllExcel()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export Excel
+          </button>
+          <button class="btn" onclick="reapplyZortNames()" title="นำชื่อจาก Zort มาแทนซ้ำ" style="font-size:12px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
+            Re-apply ชื่อ Zort
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="panel" id="panel-result" style="display:none">
+      <div class="panel-header"><div class="panel-title"><span class="badge badge-green">04</span> ผลลัพธ์</div></div>
+      <div class="panel-body">
+        <div id="result-summary"></div>
+        <div class="btn-row"><button class="btn" onclick="resetAll()">↺ ทำรายการใหม่</button></div>
+      </div>
+    </div>
+    <div class="panel" id="panel-history">
+      <div class="panel-header">
+        <div class="panel-title"><span class="badge badge-amber">📋</span> ประวัติการส่ง</div>
+        <button class="btn" onclick="clearHistory()" style="font-size:11px;padding:4px 8px;color:var(--text3)">ล้างประวัติ</button>
+      </div>
+      <div class="panel-body" id="history-body">
+        <div style="font-size:13px;color:var(--text3);text-align:center;padding:1rem">ยังไม่มีประวัติการส่ง</div>
+      </div>
+    </div>
+  </main>
+</div>
+<div class="toast" id="toast">
+  <div class="toast-icon" id="toast-icon"></div>
+  <div class="toast-msg" id="toast-msg"></div>
+</div>
+<script>
+// PDF.js will be loaded via module script above
+let poList = []; // [{filename, poNumber, branch, dateInput, items, grandTotal, status, tfId}]
+let toastTimer;
+let skuDb = {}; // {sku: name} — loaded from product/bundle xlsx
+
+window.addEventListener('load',()=>{
+  const cfg=JSON.parse(localStorage.getItem('summer_cfg')||'{}');
+  if(cfg.store)document.getElementById('cfg-store').value=cfg.store;
+  if(cfg.branch)document.getElementById('cfg-branch').value=cfg.branch;
+  if(cfg.key)document.getElementById('cfg-key').value=cfg.key;
+  if(cfg.secret)document.getElementById('cfg-secret').value=cfg.secret;
+  if(cfg.from)document.getElementById('cfg-from').value=cfg.from;
+  if(cfg.to)document.getElementById('cfg-to').value=cfg.to;
+  renderHistory();
+});
+
+function saveConfig(){
+  const cfg={
+    store:document.getElementById('cfg-store').value,
+    branch:document.getElementById('cfg-branch').value,
+    key:document.getElementById('cfg-key').value,
+    secret:document.getElementById('cfg-secret').value,
+    from:document.getElementById('cfg-from').value,
+    to:document.getElementById('cfg-to').value
+  };
+  localStorage.setItem('summer_cfg',JSON.stringify(cfg));
+  showToast('success','✓','บันทึก Config แล้ว');
+}
+
+function getCfg(){return JSON.parse(localStorage.getItem('summer_cfg')||'{}')}
+
+const dz=document.getElementById('drop-zone');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag')});
+dz.addEventListener('dragleave',()=>dz.classList.remove('drag'));
+dz.addEventListener('drop',e=>{
+  e.preventDefault();dz.classList.remove('drag');
+  const files=Array.from(e.dataTransfer.files).filter(f=>f.type==='application/pdf');
+  if(files.length>0)handleFiles(files);
+});
+
+async function handleFiles(fileList){
+  const files=Array.from(fileList);
+  if(!files.length)return;
+
+  document.getElementById('upload-fname').textContent='✓ '+files.length+' ไฟล์';
+  document.getElementById('upload-done').style.display='block';
+  setStep(2);
+  document.getElementById('panel-reading').style.display='block';
+  document.getElementById('loader-text').textContent='กำลังโหลด PDF.js...';
+
+  if(!window.pdfjsLib){
+    await new Promise(resolve=>{
+      if(window.pdfjsReady)return resolve();
+      window.addEventListener('pdfjsLoaded',resolve,{once:true});
+      setTimeout(resolve,5000);
+    });
+  }
+  if(!window.pdfjsLib){
+    document.getElementById('loader-text').textContent='❌ PDF.js โหลดไม่สำเร็จ';
+    return;
+  }
+
+  poList=[];
+  for(let i=0;i<files.length;i++){
+    document.getElementById('loader-text').textContent=`อ่าน PDF ${i+1}/${files.length}: ${files[i].name}`;
+    const buf=await files[i].arrayBuffer();
+    const parsed=await parsePDF(buf);
+    if(parsed){
+      // Apply Zort name lookup — replace PDF name with Zort name where available
+      let matchCount=0;
+      parsed.items.forEach(item=>{
+        const zortName=lookupName(item.sku);
+        if(zortName){item.name=zortName;item.nameFromZort=true;matchCount++;}
+        else{item.nameFromZort=false;}
+      });
+      if(matchCount>0)showToast('success','✓',`${files[i].name}: แทนชื่อ Zort ${matchCount}/${parsed.items.length} รายการ`);
+      poList.push({
+        filename:files[i].name,
+        poNumber:parsed.po_number,
+        branch:parsed.branch,
+        dateInput:parsed.date_input,
+        items:parsed.items,
+        grandTotal:parsed.grand_total,
+        status:'pending',
+        tfId:''
+      });
+    }
+  }
+
+  if(poList.length===0){
+    document.getElementById('loader-text').textContent='❌ ไม่พบรายการสินค้าในไฟล์ที่เลือก';
+    return;
+  }
+
+  document.getElementById('panel-reading').style.display='none';
+  document.getElementById('panel-confirm').style.display='block';
+  setStep(3);
+  renderPoCards();
+  const total=poList.reduce((s,p)=>s+p.items.length,0);
+  document.getElementById('item-count-badge').textContent=`(${poList.length} PO · ${total} รายการ)`;
+  showToast('success','✓',`พบ ${poList.length} PO · ${total} รายการ`);
+}
+
+function renderPoCards(){
+  const container=document.getElementById('po-cards-container');
+  container.innerHTML='';
+
+  // จัดกลุ่มตามสาขา
+  const groups={};
+  poList.forEach((po,idx)=>{
+    const key=po.branch||'ไม่ระบุสาขา';
+    if(!groups[key])groups[key]=[];
+    groups[key].push({po,idx});
+  });
+
+  Object.entries(groups).forEach(([branch,entries])=>{
+    // Header กลุ่มสาขา
+    const groupEl=document.createElement('div');
+    groupEl.style.cssText='margin-bottom:.5rem;margin-top:1rem';
+    const successInGroup=entries.filter(e=>e.po.status==='success').length;
+    const groupColor=successInGroup===entries.length?'var(--green2)':successInGroup>0?'var(--amber)':'var(--text3)';
+    groupEl.innerHTML=`
+      <div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--border2);margin-bottom:.75rem">
+        <span style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;font-family:monospace;color:${groupColor}">${branch}</span>
+        <span style="font-size:11px;color:var(--text3)">${entries.length} PO</span>
+        <div style="flex:1;height:1px;background:var(--border)"></div>
+        <span style="font-size:11px;color:${groupColor}">${successInGroup}/${entries.length} ✓</span>
+      </div>`;
+    container.appendChild(groupEl);
+
+    entries.forEach(({po,idx})=>{
+    const cfg=getCfg();
+    const branchVal=document.getElementById('cfg-branch').value||cfg.branch||'|';
+    const suffix=branchVal.split('|')[1]||'';
+    const descParts=[po.branch,po.poNumber,suffix].filter(Boolean);
+    const desc=descParts.join(' // ');
+    const totalQty=po.items.reduce((s,i)=>s+(parseFloat(i.qty)||0),0);
+    const fromWh=document.getElementById('cfg-from').value||cfg.from||'WH001';
+    const toWh=document.getElementById('cfg-to').value||cfg.to||'SCC0001';
+
+    let statusHtml='';
+    if(po.status==='success')statusHtml=`<span style="color:var(--green2);font-size:12px">✅ สำเร็จ · Transfer ID: ${po.tfId||'-'}</span>`;
+    else if(po.status==='error')statusHtml=`<span style="color:var(--red);font-size:12px">❌ ${po.errorMsg||'ส่งไม่สำเร็จ'}</span>`;
+    else if(po.status==='sending')statusHtml=`<span style="color:var(--amber);font-size:12px">⏳ กำลังส่ง...</span>`;
+
+    const card=document.createElement('div');
+    card.className=`po-card status-${po.status}`;
+    card.id=`po-card-${idx}`;
+    card.innerHTML=`
+      <div class="po-card-header" onclick="toggleCard(${idx})">
+        <div class="po-status-dot"></div>
+        <div style="flex:1">
+          <div style="font-family:monospace;font-size:12px;color:var(--amber)">${po.poNumber||po.filename}</div>
+          <div style="font-size:11px;color:var(--text3)">${po.branch||'-'} · ${po.items.length} รายการ · ${totalQty} ชิ้น/ถุง</div>
+        </div>
+        <div style="text-align:right">
+          ${statusHtml}
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">${po.filename}</div>
+        </div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--text3);flex-shrink:0;transition:transform .2s" id="chevron-${idx}"><polyline points="6 9 12 15 18 9"/></svg>
+        ${po.status!=='success'?`<button onclick="removePo(${idx},event)" title="ลบ PO นี้ออก" style="background:none;border:none;cursor:pointer;padding:4px 6px;border-radius:4px;color:var(--text3);flex-shrink:0;transition:all .15s;margin-left:2px" onmouseover="this.style.color='var(--red)';this.style.background='rgba(176,64,64,.08)'" onmouseout="this.style.color='var(--text3)';this.style.background='none'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>`:''}
+      </div>
+      <div class="po-card-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:1rem">
+          <div><label class="meta-label">วันที่โอน</label><input type="date" class="meta-input" id="date-${idx}" value="${po.dateInput||new Date().toISOString().split('T')[0]}"></div>
+          <div><label class="meta-label">Transfer No.</label><input type="text" class="meta-input" id="tfnum-${idx}" placeholder="Auto"></div>
+          <div><label class="meta-label">Reference</label><input type="text" class="meta-input" id="ref-${idx}" value="${po.poNumber||''}"></div>
+          <div><label class="meta-label">หมายเหตุ</label><input type="text" class="meta-input" id="desc-${idx}" value="${desc}"></div>
+        </div>
+        <div style="margin-bottom:.75rem;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <span style="font-size:10px;color:var(--text3);font-family:'IBM Plex Mono',monospace;letter-spacing:.05em">🏷 TAG อัตโนมัติ:</span>
+          ${po.branch?`<span style="background:rgba(74,127,196,.12);border:1px solid rgba(74,127,196,.25);border-radius:4px;padding:2px 8px;font-size:11px;color:#7aabf0;font-family:monospace">${po.branch}</span>`:''}
+          ${po.poNumber?`<span style="background:rgba(74,127,196,.12);border:1px solid rgba(74,127,196,.25);border-radius:4px;padding:2px 8px;font-size:11px;color:#7aabf0;font-family:monospace">${po.poNumber}</span>`:''}
+          <span style="font-size:10px;color:var(--text3)">จะถูกใส่ใน Zort อัตโนมัติ</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1rem">
+          <div><label class="meta-label">จากคลัง</label>
+            <select class="meta-input" id="from-${idx}" style="font-family:'IBM Plex Mono',monospace;font-size:11px">
+              <option value="WH001"${fromWh==='WH001'?' selected':''}>WH001 — Warehouse</option>
+              <option value="WD0007"${fromWh==='WD0007'?' selected':''}>WD0007 — Warehouse (Defect)</option>
+              <option value="SCC0001"${fromWh==='SCC0001'?' selected':''}>SCC0001 — ฝากขาย SCC</option>
+              <option value="W0009"${fromWh==='W0009'?' selected':''}>W0009 — Scc Booth</option>
+            </select>
+          </div>
+          <div><label class="meta-label">ไปคลัง</label>
+            <select class="meta-input" id="to-${idx}" style="font-family:'IBM Plex Mono',monospace;font-size:11px">
+              <option value="WH001"${toWh==='WH001'?' selected':''}>WH001 — Warehouse</option>
+              <option value="WD0007"${toWh==='WD0007'?' selected':''}>WD0007 — Warehouse (Defect)</option>
+              <option value="SCC0001"${toWh==='SCC0001'?' selected':''}>SCC0001 — ฝากขาย SCC</option>
+              <option value="W0009"${toWh==='W0009'?' selected':''}>W0009 — Scc Booth</option>
+            </select>
+          </div>
+        </div>
+        <table class="items-table" style="margin-bottom:.5rem">
+          <thead><tr>
+            <th style="width:130px">SKU</th><th>ชื่อสินค้า</th>
+            <th style="width:70px;text-align:center">จำนวน</th>
+            <th style="width:60px;text-align:center">หน่วย</th>
+            <th style="width:36px"></th>
+          </tr></thead>
+          <tbody id="tbody-${idx}">
+            ${po.items.map((item,j)=>{
+              const hasDb=Object.keys(skuDb).length>0;
+              const matched=item.nameFromZort===true;
+              const unmatched=hasDb&&item.nameFromZort===false;
+              const rowBg=unmatched?'background:rgba(176,64,64,.04)':'';
+              const nameTag=matched?'<span title="ชื่อจาก Zort" style="font-size:9px;color:var(--green2);margin-left:4px;vertical-align:middle">✦Z</span>'
+                            :unmatched?'<span title="ไม่พบใน Zort — ชื่อจาก PDF" style="font-size:9px;color:var(--red);margin-left:4px;vertical-align:middle">⚠PDF</span>':'';
+              return `<tr style="${rowBg}">
+                <td><input class="tbl-input mono" value="${item.sku}" onchange="poList[${idx}].items[${j}].sku=this.value"></td>
+                <td style="position:relative">
+                  <div style="display:flex;align-items:center;gap:4px">
+                    <input class="tbl-input" value="${item.name.replace(/"/g,'&quot;')}" onchange="poList[${idx}].items[${j}].name=this.value" style="flex:1">
+                    ${nameTag}
+                  </div>
+                </td>
+                <td><input class="tbl-input mono" type="number" value="${item.qty}" min="0" style="text-align:center" onchange="poList[${idx}].items[${j}].qty=parseFloat(this.value)||0"></td>
+                <td><input class="tbl-input" value="${item.unit||'Bag'}" style="text-align:center" onchange="poList[${idx}].items[${j}].unit=this.value"></td>
+                <td><button class="tbl-del" onclick="poList[${idx}].items.splice(${j},1);renderPoCards()" title="ลบ">×</button></td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:.875rem 0 .5rem">
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:.625rem;text-align:center">
+            <div style="font-size:10px;color:var(--text3);font-family:monospace;letter-spacing:.06em;text-transform:uppercase;margin-bottom:3px">รายการ</div>
+            <div style="font-size:18px;font-weight:500;font-family:monospace;color:var(--espresso)">${po.items.length}</div>
+          </div>
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:.625rem;text-align:center">
+            <div style="font-size:10px;color:var(--text3);font-family:monospace;letter-spacing:.06em;text-transform:uppercase;margin-bottom:3px">จำนวนรวม</div>
+            <div style="font-size:18px;font-weight:500;font-family:monospace;color:var(--espresso)">${po.items.reduce((s,i)=>s+(parseFloat(i.qty)||0),0)}</div>
+          </div>
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:.625rem;text-align:center">
+            <div style="font-size:10px;color:var(--text3);font-family:monospace;letter-spacing:.06em;text-transform:uppercase;margin-bottom:3px">มูลค่ารวม (฿)</div>
+            <div style="font-size:18px;font-weight:500;font-family:monospace;color:var(--espresso)">${po.items.reduce((s,i)=>s+(parseFloat(i.qty)||0)*(parseFloat(i.price)||0),0).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+          </div>
+        </div>
+        ${(()=>{
+          const hasDb=Object.keys(skuDb).length>0;
+          if(!hasDb)return '';
+          const unmatched=po.items.filter(i=>i.nameFromZort===false);
+          const matched=po.items.filter(i=>i.nameFromZort===true).length;
+          let html='';
+          if(unmatched.length>0){
+            html+=`<div style="margin-top:.5rem;background:rgba(176,64,64,.06);border:1px solid rgba(176,64,64,.2);border-radius:var(--radius);padding:.5rem .75rem;font-size:11px;color:var(--red)">
+              ⚠️ ไม่พบ SKU ต่อไปนี้ในฐานข้อมูล Zort (ใช้ชื่อจาก PDF แทน): <strong>${unmatched.map(i=>i.sku).join(', ')}</strong>
+            </div>`;
+          }
+          if(matched>0){
+            html+=`<div style="margin-top:.375rem;font-size:11px;color:var(--green2)">✦ ${matched} รายการ ได้ชื่อจาก Zort · ${unmatched.length} รายการ ไม่พบใน Zort</div>`;
+          }
+          return html;
+        })()}
+        ${po.grandTotal?`<div style="font-size:11px;color:var(--text3);text-align:right;margin-bottom:.5rem">Grand Total จากเอกสาร: ฿${po.grandTotal.toLocaleString('th-TH',{minimumFractionDigits:2})}</div>`:''}
+      </div>`;
+    container.appendChild(card);
+    }); // entries.forEach
+  }); // Object.entries
+}
+
+function toggleCard(idx){
+  const card=document.getElementById(`po-card-${idx}`);
+  const chevron=document.getElementById(`chevron-${idx}`);
+  card.classList.toggle('expanded');
+  chevron.style.transform=card.classList.contains('expanded')?'rotate(180deg)':'';
+}
+
+function removePo(idx,e){
+  e.stopPropagation(); // ไม่ให้ toggle card
+  const po=poList[idx];
+  if(po.status==='sending'){showToast('error','✕','ไม่สามารถลบได้ขณะกำลังส่ง');return;}
+  poList.splice(idx,1);
+  if(poList.length===0){
+    // ถ้าลบหมดแล้ว → กลับไปหน้า upload
+    document.getElementById('panel-confirm').style.display='none';
+    document.getElementById('item-count-badge').textContent='';
+    document.getElementById('status-pill').textContent='ยังไม่ได้ upload';
+    document.getElementById('status-pill').classList.remove('active');
+    document.getElementById('upload-done').style.display='none';
+    document.getElementById('pdf-input').value='';
+    setStep(1);
+    return;
+  }
+  renderPoCards();
+  const total=poList.reduce((s,p)=>s+p.items.length,0);
+  document.getElementById('item-count-badge').textContent=`(${poList.length} PO · ${total} รายการ)`;
+  showToast('success','✓',`ลบ PO ออกแล้ว · เหลือ ${poList.length} PO`);
+}
+
+async function confirmSendAll(){
+  const cfg=getCfg();
+  const store=document.getElementById('cfg-store').value||cfg.store;
+  const key=document.getElementById('cfg-key').value||cfg.key;
+  const secret=document.getElementById('cfg-secret').value||cfg.secret;
+  if(!store||!key||!secret){showToast('error','✕','กรุณากรอก Store Name, API Key, API Secret');return;}
+
+  const pendingPos=poList.filter(p=>p.status==='pending'||p.status==='error');
+  if(pendingPos.length===0){showToast('error','✕','ไม่มีรายการที่ต้องส่ง');return;}
+
+  const totalItems=pendingPos.reduce((s,p)=>s+p.items.length,0);
+  if(!confirm(`ยืนยันส่งเข้า Zort
+
+${pendingPos.length} PO · ${totalItems} รายการรวม
+
+ดำเนินการต่อ?`))return;
+
+  const sendBtn=document.getElementById('send-all-btn');
+  sendBtn.disabled=true;
+  sendBtn.textContent='⏳ กำลังส่ง...';
+
+  let successCount=0;
+  let failList=[];
+
+  for(let idx=0;idx<poList.length;idx++){
+    const po=poList[idx];
+    if(po.status==='success')continue;
+
+    // อัปเดตสถานะ
+    po.status='sending';
+    renderPoCards();
+
+    const dateVal=document.getElementById(`date-${idx}`)?.value||po.dateInput||new Date().toISOString().split('T')[0];
+    const tfNum=document.getElementById(`tfnum-${idx}`)?.value||'';
+    const ref=document.getElementById(`ref-${idx}`)?.value||po.poNumber||'';
+    const desc=document.getElementById(`desc-${idx}`)?.value||'';
+    const fromWh=document.getElementById(`from-${idx}`)?.value||cfg.from||'WH001';
+    const toWh=document.getElementById(`to-${idx}`)?.value||cfg.to||'SCC0001';
+
+    // สร้าง Tag อัตโนมัติ: ชื่อสาขา + เลข PO
+    const autoTags=[];
+    if(po.branch)autoTags.push(po.branch);
+    if(ref)autoTags.push(ref);
+
+    const body={
+      status:'Pending',transferdate:dateVal,
+      fromwarehousecode:fromWh,towarehousecode:toWh,
+      reference:ref,description:desc||'Transfer',
+      tag:autoTags,
+      list:po.items.map(i=>({sku:i.sku,name:i.name,number:parseFloat(i.qty)||0}))
+    };
+    if(tfNum&&tfNum!=='Auto')body.number=tfNum;
+
+    try{
+      const res=await fetch('https://open-api.zortout.com/v4/Transfer/AddTransfer',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','storename':store,'apikey':key,'apisecret':secret},
+        body:JSON.stringify(body)
+      });
+      const data=await res.json();
+      if(String(data.resCode)==='200'){
+        po.status='success';
+        po.tfId=data.detail?.id||'-';
+        successCount++;
+        addHistory({po:ref,desc:desc,items:po.items.length,tfId:po.tfId,from:fromWh,to:toWh});
+      } else {
+        po.status='error';
+        po.errorMsg=data.resDesc||'Zort error';
+        failList.push(po.poNumber||po.filename);
+      }
+    }catch(err){
+      po.status='error';
+      po.errorMsg='เชื่อมต่อไม่ได้';
+      failList.push(po.poNumber||po.filename);
+    }
+    renderPoCards();
+  }
+
+  sendBtn.disabled=false;
+  sendBtn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 2 11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> ส่งทั้งหมดเข้า Zort';
+
+  // แสดงสรุป
+  if(failList.length===0){
+    document.getElementById('panel-confirm').style.display='none';
+    document.getElementById('panel-result').style.display='block';
+    document.getElementById('result-summary').innerHTML=`
+      <div style="background:rgba(74,158,106,.06);border:1px solid rgba(74,158,106,.2);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1rem">
+        <div style="font-family:monospace;font-size:16px;font-weight:500;color:var(--green2);margin-bottom:4px">✅ ส่งสำเร็จทั้งหมด ${successCount} PO</div>
+        <div style="font-size:12px;color:var(--text2)">รายการทั้งหมดถูกสร้างใน Zort แล้ว</div>
+      </div>`;
+    setStep(4);
+    showToast('success','✓',`ส่งสำเร็จ ${successCount} PO!`);
+  } else {
+    showToast('error','⚠',`สำเร็จ ${successCount} · ล้มเหลว ${failList.length} PO`);
+    // แสดง error PO ใน card (ยังคงอยู่หน้าเดิม)
+    document.getElementById('panel-result').style.display='block';
+    document.getElementById('result-summary').innerHTML=`
+      <div style="background:rgba(196,80,80,.06);border:1px solid rgba(196,80,80,.2);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1rem">
+        <div style="font-size:14px;font-weight:500;color:var(--red);margin-bottom:6px">⚠️ บางรายการส่งไม่สำเร็จ</div>
+        <div style="font-size:12px;color:var(--text2)">สำเร็จ: <strong style="color:var(--green2)">${successCount} PO</strong> · ล้มเหลว: <strong style="color:var(--red)">${failList.length} PO</strong></div>
+        <div style="font-size:12px;color:var(--text3);margin-top:4px">PO ที่ล้มเหลว: ${failList.join(', ')}</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:6px">กด "ส่งทั้งหมดเข้า Zort" อีกครั้งเพื่อลอง retry</div>
+      </div>`;
+  }
+}
+
+function exportAllExcel(){
+  const cfg=getCfg();
+  const from=document.getElementById('cfg-from').value||cfg.from||'WH001';
+  const to=document.getElementById('cfg-to').value||cfg.to||'SCC0001';
+  const wb=XLSX.utils.book_new();
+  poList.forEach((po,idx)=>{
+    const dateVal=document.getElementById(`date-${idx}`)?.value||po.dateInput||'';
+    let displayDate=dateVal;
+    if(dateVal){const p=dateVal.split('-');displayDate=`${p[2]}/${p[1]}/${p[0]}`;}
+    const ref=po.poNumber||po.filename;
+    const rows=[
+      ['รายการโอน','','','','','ข้อมูลสินค้า','',''],
+      ['หมายเลขรายการ','วันที่ทำรายการ','สถานะ','จากคลัง/สาขา','ไปคลัง/สาขา','รหัสสินค้า','ชื่อสินค้า','จำนวน']
+    ];
+    po.items.forEach((item,i)=>{
+      rows.push(i===0?['Auto',displayDate,'รอ',from,to,item.sku,item.name,item.qty]:['','','','','',item.sku,item.name,item.qty]);
+    });
+    const ws=XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols']=[{wch:18},{wch:16},{wch:16},{wch:20},{wch:20},{wch:16},{wch:40},{wch:10}];
+    XLSX.utils.book_append_sheet(wb,ws,`${idx+1}-${ref.substring(0,25)}`);
+  });
+  XLSX.writeFile(wb,`transfer_${new Date().toISOString().split('T')[0]}.xlsx`);
+  showToast('success','✓','Export Excel สำเร็จ');
+}
+
+function resetAll(){
+  poList=[];
+  ['panel-reading','panel-confirm','panel-result'].forEach(id=>document.getElementById(id).style.display='none');
+  document.getElementById('upload-done').style.display='none';
+  document.getElementById('pdf-input').value='';
+  document.getElementById('status-pill').textContent='ยังไม่ได้ upload';
+  document.getElementById('status-pill').classList.remove('active');
+  document.getElementById('item-count-badge').textContent='';
+  setStep(1);
+  updateSkuSummary();
+}
+
+function setStep(n){
+  for(let i=1;i<=4;i++){
+    const el=document.getElementById(`step-s${i}`);
+    el.className='step-item'+(i<n?' done':i===n?' active':'');
+    el.querySelector('.step-num').textContent=i<n?'✓':i;
+  }
+}
+
+function showToast(type,icon,msg){
+  const t=document.getElementById('toast');
+  document.getElementById('toast-icon').textContent=icon;
+  document.getElementById('toast-msg').textContent=msg;
+  t.className='toast show'+(type?' '+type:'');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+// ===== PDF Parser =====
+async function parsePDF(buf){
+  try{
+    const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+    let fullText='';
+    for(let p=1;p<=pdf.numPages;p++){
+      const page=await pdf.getPage(p);
+      const content=await page.getTextContent();
+      const words=content.items.filter(i=>i.str.trim()!=='');
+      words.sort((a,b)=>{
+        const yDiff=Math.round(b.transform[5])-Math.round(a.transform[5]);
+        if(Math.abs(yDiff)>3)return yDiff;
+        return a.transform[4]-b.transform[4];
+      });
+      const rowMap={};
+      words.forEach(w=>{
+        const y=Math.round(w.transform[5]);
+        if(!rowMap[y])rowMap[y]=[];
+        rowMap[y].push({text:w.str.trim(),x:w.transform[4]});
+      });
+      Object.keys(rowMap).sort((a,b)=>b-a).forEach(y=>{
+        const row=rowMap[y].sort((a,b)=>a.x-b.x).map(w=>w.text).join(' ');
+        fullText+=row+'\n';
+      });
+    }
+
+    const poM=fullText.match(/PO\d{10}/);
+    const poNumber=poM?poM[0]:'';
+
+    let dateInput='';
+    const dtM=fullText.match(/(\d{1,2})\/(\d{2})\/(\d{4})/);
+    if(dtM){
+      let yr=parseInt(dtM[3]);
+      if(yr>2500)yr-=543;
+      dateInput=`${yr}-${dtM[2].padStart(2,'0')}-${dtM[1].padStart(2,'0')}`;
+    }
+
+    let branchName='';
+    const textLines=fullText.split('\n');
+    for(let i=0;i<textLines.length;i++){
+      if(textLines[i].includes('The Summer Coffee Company')){
+        const same=textLines[i].split('The Summer Coffee Company')[1];
+        if(same&&same.trim().length>0&&same.trim().length<50&&!same.includes('PO')){
+          branchName=same.trim();break;
+        }
+        const next=(textLines[i+1]||'').trim();
+        if(next&&next.length<50&&!/^(PO|Ref|BUYER|SUPPLIER|DETAIL|\d)/.test(next)){
+          branchName=next;break;
+        }
+      }
+    }
+    // Strip "The Summer Coffee -" or "The Summer Coffee-" prefix → keep only branch name
+    branchName=branchName.replace(/^The\s+Summer\s+Coffee\s*[-–]\s*/i,'').trim();
+
+    const normalizeLine=(line)=>{
+      let r=line.replace(/([A-Z0-9])\s*-\s*(?=[A-Z0-9])/g,'$1-');
+      for(let i=0;i<3;i++){r=r.replace(/\b([A-Z][A-Z0-9]*)\s+(\d+)(?=-)/g,'$1$2');}
+      r=r.replace(/(?<=-)(\d+)\s+([A-Z]+)(?=-)/g,'$1$2');
+      return r;
+    };
+
+    const UNITS=new Set(['Bag','Pack','Bottle','Pieces','Piece','Box','Roll']);
+    const SKU_START=/^(?:\d+\s+)?([A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*)\s*-\s*(.+)$/;
+    const extractedItems=[];
+    const seenSkus=new Set();
+    for(const rawLine of textLines){
+      const line=normalizeLine(rawLine);
+      const m=line.match(SKU_START);
+      if(!m)continue;
+      const sku=m[1].trim();
+      if(/[ก-๙]/.test(sku))continue;
+      if(sku.length<3)continue;
+      const tokens=m[2].trim().split(/\s+/);
+      if(tokens.length<5)continue;
+      try{
+        if(isNaN(parseFloat(tokens[tokens.length-1].replace(/,/g,''))))continue;
+        const price=parseFloat(tokens[tokens.length-2].replace(/,/g,''));
+        if(isNaN(price))continue;
+        const vat=tokens[tokens.length-3];
+        if(vat!=='Y'&&vat!=='N')continue;
+        const unit=tokens[tokens.length-4];
+        if(!UNITS.has(unit))continue;
+        const qty=parseInt(tokens[tokens.length-5].replace(/,/g,''));
+        if(isNaN(qty))continue;
+        const name=tokens.slice(0,tokens.length-5).join(' ').replace(/^-\s*/,'').trim();
+        const key=sku+'_'+qty+'_'+unit;
+        if(seenSkus.has(key))continue;
+        seenSkus.add(key);
+        extractedItems.push({sku,name,qty,unit,price});
+      }catch(e){continue;}
+    }
+
+    let grandTotal=0;
+    const gtM=fullText.match(/Grand Total[\s\S]*?([\d,]+\.\d{2})/);
+    if(gtM)grandTotal=parseFloat(gtM[1].replace(/,/g,''));
+
+    return {po_number:poNumber,date_input:dateInput,branch:branchName,items:extractedItems,grand_total:grandTotal};
+  }catch(err){
+    console.error('parsePDF error:',err);
+    return null;
+  }
+}
+
+// ===== ประวัติการส่ง =====
+function getHistory(){return JSON.parse(localStorage.getItem('summer_history')||'[]');}
+function saveHistory(h){localStorage.setItem('summer_history',JSON.stringify(h.slice(0,50)));}
+
+function addHistory(entry){
+  const h=getHistory();
+  h.unshift({...entry,ts:new Date().toISOString()});
+  saveHistory(h);
+  renderHistory();
+}
+
+function renderHistory(){
+  const el=document.getElementById('history-body');
+  if(!el)return;
+  const h=getHistory();
+  if(h.length===0){
+    el.innerHTML='<div style="font-size:13px;color:var(--text3);text-align:center;padding:1rem">ยังไม่มีประวัติการส่ง</div>';
+    return;
+  }
+  el.innerHTML=h.map(e=>{
+    const d=new Date(e.ts);
+    const dateStr=d.toLocaleDateString('th-TH',{day:'2-digit',month:'2-digit',year:'2-digit'});
+    const timeStr=d.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'});
+    return `<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
+      <div style="color:var(--text3);font-family:monospace;min-width:80px">${dateStr} ${timeStr}</div>
+      <div style="flex:1">
+        <div style="font-family:monospace;color:var(--amber);font-size:11px">${e.po||'-'}</div>
+        <div style="color:var(--text2)">${e.desc||'-'}</div>
+      </div>
+      <div style="text-align:right;color:var(--text3)">
+        <div>${e.items||0} รายการ</div>
+        <div style="font-family:monospace;font-size:10px;color:var(--green2)">${e.tfId||''}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function clearHistory(){
+  if(!confirm('ล้างประวัติทั้งหมดใช่ไหม?'))return;
+  localStorage.removeItem('summer_history');
+  renderHistory();
+}
+
+
+
+// ===== Re-apply Zort names =====
+function reapplyZortNames(){
+  if(Object.keys(skuDb).length===0){showToast('error','⚠','ยังไม่ได้โหลดฐานข้อมูล Zort');return;}
+  let total=0,matched=0;
+  poList.forEach(po=>{
+    po.items.forEach(item=>{
+      total++;
+      const zortName=lookupName(item.sku);
+      if(zortName){item.name=zortName;item.nameFromZort=true;matched++;}
+      else{item.nameFromZort=false;}
+    });
+  });
+  renderPoCards();
+  showToast('success','✓',`Re-apply สำเร็จ: ${matched}/${total} รายการได้ชื่อจาก Zort`);
+}
+
+// ===== SKU Database from Excel =====
+async function loadSkuFile(fileList, type) {
+  const file = fileList[0];
+  if (!file) return;
+  const statusEl = document.getElementById(`sku-${type}-status`);
+  statusEl.textContent = 'กำลังโหลด...';
+  statusEl.style.color = 'var(--amber)';
+
+  try {
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, {type:'array'});
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+
+    let count = 0;
+    if (type === 'product') {
+      // Find header row: look for รหัสสินค้า and ชื่อสินค้า
+      let skuCol = -1, nameCol = -1;
+      let headerRow = -1;
+      for (let r = 0; r < Math.min(rows.length, 5); r++) {
+        const row = rows[r];
+        for (let c = 0; c < row.length; c++) {
+          const val = String(row[c]).trim();
+          if (val === 'รหัสสินค้า') { skuCol = c; headerRow = r; }
+          if (val === 'ชื่อสินค้า') nameCol = c;
+        }
+        if (skuCol >= 0 && nameCol >= 0) break;
+      }
+      if (skuCol < 0 || nameCol < 0) throw new Error('ไม่พบคอลัมน์ รหัสสินค้า / ชื่อสินค้า');
+      for (let r = headerRow + 1; r < rows.length; r++) {
+        const sku = String(rows[r][skuCol] || '').trim();
+        const name = String(rows[r][nameCol] || '').trim();
+        if (sku && name) { skuDb[sku] = name; count++; }
+      }
+    } else {
+      // Bundle: find รหัสสินค้าเป็นชุด and ชื่อสินค้าเป็นชุด
+      let skuCol = -1, nameCol = -1;
+      let headerRow = -1;
+      for (let r = 0; r < Math.min(rows.length, 5); r++) {
+        const row = rows[r];
+        for (let c = 0; c < row.length; c++) {
+          const val = String(row[c]).trim();
+          if (val === 'รหัสสินค้าเป็นชุด') { skuCol = c; headerRow = r; }
+          if (val === 'ชื่อสินค้าเป็นชุด') nameCol = c;
+        }
+        if (skuCol >= 0 && nameCol >= 0) break;
+      }
+      if (skuCol < 0 || nameCol < 0) throw new Error('ไม่พบคอลัมน์ใน bundle');
+      const seen = new Set();
+      for (let r = headerRow + 1; r < rows.length; r++) {
+        const sku = String(rows[r][skuCol] || '').trim();
+        const name = String(rows[r][nameCol] || '').trim();
+        if (sku && name && !seen.has(sku)) { skuDb[sku] = name; seen.add(sku); count++; }
+      }
+    }
+
+    statusEl.textContent = `✅ ${count} รายการ`;
+    statusEl.style.color = 'var(--green2)';
+    updateSkuSummary();
+    showToast('success','✓',`โหลด ${type === 'product' ? 'Product' : 'Bundle'} สำเร็จ ${count} รายการ`);
+  } catch(err) {
+    statusEl.textContent = '❌ ' + err.message;
+    statusEl.style.color = 'var(--red)';
+  }
+}
+
+function updateSkuSummary() {
+  const total = Object.keys(skuDb).length;
+  const el = document.getElementById('sku-summary');
+  if (total === 0) { el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  el.innerHTML = `<span style="color:var(--green2);font-weight:500">✅ ฐานข้อมูลพร้อมใช้งาน</span> · สินค้าทั้งหมด <strong style="font-family:monospace">${total}</strong> รายการ · ชื่อสินค้าจะถูกแทนด้วยชื่อใน Zort อัตโนมัติ`;
+  document.getElementById('sku-status-badge').innerHTML = `<span class="badge badge-green">${total} SKU</span>`;
+}
+
+function lookupName(sku) {
+  return skuDb[sku] || null;
+}
+
+// ===== Test Connection =====
+async function testConnection(){
+  const btn=document.getElementById('test-conn-btn');
+  const status=document.getElementById('conn-status');
+  const store=document.getElementById('cfg-store').value||getCfg().store;
+  const key=document.getElementById('cfg-key').value||getCfg().key;
+  const secret=document.getElementById('cfg-secret').value||getCfg().secret;
+  if(!store||!key||!secret){
+    status.textContent='❌ กรุณากรอก Store, Key, Secret';
+    status.style.color='var(--red)';return;
+  }
+  btn.disabled=true;btn.textContent='กำลังทดสอบ...';status.textContent='';
+  try{
+    const res=await fetch('https://open-api.zortout.com/v4/Product/GetProducts?limit=1',{
+      method:'GET',headers:{'storename':store,'apikey':key,'apisecret':secret}
+    });
+    const data=await res.json();
+    if(String(data.resCode)==='200'){
+      status.textContent='✅ เชื่อมต่อสำเร็จ';status.style.color='var(--green2)';
+    }else{
+      status.textContent='❌ '+(data.resDesc||'Invalid API');status.style.color='var(--red)';
+    }
+  }catch(err){status.textContent='❌ เชื่อมต่อไม่ได้';status.style.color='var(--red)';}
+  btn.disabled=false;
+  btn.innerHTML='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> ทดสอบการเชื่อมต่อ';
+}
+</script>
+</body>
+</html>
